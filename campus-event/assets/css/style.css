@@ -1,0 +1,9 @@
+/* assets/css/style.css */
+body { 
+    font-family: 'Prompt', sans-serif; 
+}
+
+/* ซ่อน element ก่อนที่ Alpine.js จะโหลดเสร็จ ป้องกันหน้าจอกระพริบ */
+[x-cloak] { 
+    display: none !important; 
+}

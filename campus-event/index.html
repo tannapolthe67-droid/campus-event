@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบริหารจัดการกิจกรรมและชมรมนักศึกษา</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Google Fonts Inter & Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- QRCode.js for generating actual QR codes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- ไฟล์ CSS ที่แยกไว้ -->
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between" x-data="activityApp()">
+
+    <!-- Top Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md flex items-center justify-center">
+                    <i class="fa-solid fa-graduation-cap text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">CampusEvent Hub</h1>
+                    <p class="text-xs text-slate-500">ระบบบริหารจัดการกิจกรรมและชมรมนักศึกษา</p>
+                </div>
+            </div>
+
+            <!-- Role Switcher & User Profile -->
+            <div class="flex items-center space-x-4">
+                <div class="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200">
+                    <button @click="switchRole('student')" :class="role === 'student' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-600 hover:text-slate-900'" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-all flex items-center space-x-1.5">
+                        <i class="fa-solid fa-user-graduate"></i>
+                        <span>มุมมองนักศึกษา</span>
+                    </button>
+                    <button @click="switchRole('admin')" :class="role === 'admin' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-600 hover:text-slate-900'" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-all flex items-center space-x-1.5">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <span>มุมมองผู้ดูแลระบบ</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Toast Notification -->
+    <div aria-live="polite" aria-atomic="true" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="translate-y-2 opacity-0" x-transition:enter-end="translate-y-0 opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" :class="{
+                'bg-emerald-600 text-white': toast.type === 'success',
+                'bg-rose-600 text-white': toast.type === 'error',
+                'bg-amber-600 text-white': toast.type === 'warning',
+                'bg-slate-800 text-white': toast.type === 'info'
+            }" class="px-4 py-3 rounded-xl shadow-lg flex items-center space-x-3 text-sm font-medium">
+                <i :class="{
+                    'fa-solid fa-circle-check': toast.type === 'success',
+                    'fa-solid fa-circle-exclamation': toast.type === 'error',
+                    'fa-solid fa-triangle-exclamation': toast.type === 'warning',
+                    'fa-solid fa-circle-info': toast.type === 'info'
+                }" class="text-lg"></i>
+                <span x-text="toast.message"></span>
+            </div>
+        </template>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+       
+        <!-- ================= STUDENT VIEW ================= -->
+        <div x-show="role === 'student'" x-cloak class="space-y-6">
+            <!-- Student Header & Welcome banner -->
+            <div class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <span class="bg-indigo-500/50 text-indigo-100 text-xs font-medium px-3 py-1 rounded-full uppercase tracking-wider">รหัสนักศึกษา: STD-660142</span>
+                        <h2 class="text-2xl sm:text-3xl font-bold mt-2">สวัสดี, นายนวัตกรรม นักศึกษาชมรมคอมพิวเตอร์</h2>
+                        <p class="text-indigo-100 text-sm mt-1">เลือกกิจกรรมที่คุณสนใจ ลงทะเบียน และสะสมชั่วโมงกิจกรรมได้เลย!</p>
+                    </div>
+                    <div class="flex items-center space-x-3 bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20">
+                        <div class="bg-white text-indigo-600 p-3 rounded-lg font-bold text-xl shadow" x-text="myRegisteredEvents.length"></div>
+                        <div>
+                            <div class="text-xs text-indigo-200">กิจกรรมที่ลงทะเบียน</div>
+                            <div class="text-sm font-semibold">ตรวจสอบ QR Code</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs for Student -->
+            <div class="flex border-b border-slate-200 space-x-8">
+                <button @click="studentTab = 'explore'" :class="studentTab === 'explore' ? 'border-indigo-600 text-indigo-600 font-semibold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="pb-3 border-b-2 text-sm sm:text-base transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-compass"></i>
+                    <span>ค้นหากิจกรรมทั้งหมด</span>
+                </button>
+                <button @click="studentTab = 'my-events'" :class="studentTab === 'my-events' ? 'border-indigo-600 text-indigo-600 font-semibold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="pb-3 border-b-2 text-sm sm:text-base transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-ticket"></i>
+                    <span>ประวัติและตั๋วของฉัน <span class="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full" x-text="myRegisteredEvents.length"></span></span>
+                </button>
+            </div>
+
+            <!-- TAB 1: Explore Events -->
+            <div x-show="studentTab === 'explore'" class="space-y-6">
+                <!-- Search and Filters -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div class="relative w-full md:w-96">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-search"></i>
+                        </span>
+                        <input type="text" x-model="searchQuery" placeholder="ค้นหาชื่อกิจกรรม ชมรม หรือสถานที่..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        <select x-model="selectedCategory" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">ทุกหมวดหมู่ชมรม</option>
+                            <option value="วิชาการ">วิชาการ / นวัตกรรม</option>
+                            <option value="กีฬา">กีฬา / สันทนาการ</option>
+                            <option value="บำเพ็ญประโยชน์">บำเพ็ญประโยชน์</option>
+                            <option value="ศิลปวัฒนธรรม">ศิลปวัฒนธรรม</option>
+                        </select>
+                        <select x-model="selectedStatus" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">สถานะทั้งหมด</option>
+                            <option value="เปิดรับสมัคร">เปิดรับสมัคร</option>
+                            <option value="เต็มแล้ว">เต็มแล้ว</option>
+                            <option value="สิ้นสุดแล้ว">สิ้นสุดแล้ว</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Events Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="event in filteredEvents" :key="event.id">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col justify-between hover:shadow-md transition-all duration-300">
+                            <div>
+                                <!-- Event Image Banner / Header -->
+                                <div class="h-48 bg-gradient-to-br from-indigo-500 to-purple-600 relative p-6 flex flex-col justify-between text-white">
+                                    <div class="flex justify-between items-start">
+                                        <span class="bg-black/30 backdrop-blur-md px-3 py-1 rounded-full text-xs font-medium" x-text="event.category"></span>
+                                        <span :class="{
+                                            'bg-emerald-500 text-white': event.status === 'เปิดรับสมัคร',
+                                            'bg-amber-500 text-white': event.status === 'เต็มแล้ว',
+                                            'bg-slate-600 text-white': event.status === 'สิ้นสุดแล้ว'
+                                        }" class="px-3 py-1 rounded-full text-xs font-semibold shadow-sm" x-text="event.status"></span>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-indigo-100 font-medium" x-text="event.club"></div>
+                                        <h3 class="text-lg font-bold line-clamp-1 mt-1" x-text="event.title"></h3>
+                                    </div>
+                                </div>
+                                <!-- Event Details -->
+                                <div class="p-5 space-y-3 text-sm text-slate-600">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                                            <i class="fa-regular fa-calendar"></i>
+                                        </div>
+                                        <span x-text="event.date"></span>
+                                    </div>
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                                            <i class="fa-solid fa-location-dot"></i>
+                                        </div>
+                                        <span class="truncate" x-text="event.location"></span>
+                                    </div>
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                                            <i class="fa-solid fa-users"></i>
+                                        </div>
+                                        <span>รับสมัคร: <strong class="text-slate-800" x-text="event.registeredCount + '/' + event.maxCapacity"></strong> คน</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500 line-clamp-2 pt-1" x-text="event.description"></p>
+                                </div>
+                            </div>
+                            <!-- Card Footer Action -->
+                            <div class="p-5 pt-0">
+                                <template x-if="isRegistered(event.id)">
+                                    <button @click="openTicketModal(event)" class="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-100 transition-all flex items-center justify-center space-x-2">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                        <span>ดู QR Code ของฉัน</span>
+                                    </button>
+                                </template>
+                                <template x-if="!isRegistered(event.id)">
+                                    <button @click="registerEvent(event)" :disabled="event.status !== 'เปิดรับสมัคร' || event.registeredCount >= event.maxCapacity" :class="event.status === 'เปิดรับสมัคร' && event.registeredCount < event.maxCapacity ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md' : 'bg-slate-200 text-slate-400 cursor-not-allowed'" class="w-full py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center space-x-2">
+                                        <i class="fa-solid fa-right-to-bracket"></i>
+                                        <span x-text="event.status === 'เปิดรับสมัคร' ? 'ลงทะเบียนเข้าร่วม' : 'ไม่สามารถลงทะเบียนได้'"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- TAB 2: My Registered Events -->
+            <div x-show="studentTab === 'my-events'" class="space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900">กิจกรรมที่ฉันลงทะเบียนแล้ว</h3>
+                            <p class="text-xs text-slate-500">แสดงตั๋ว QR Code สำหรับเช็คชื่อหน้างาน และประวัติการเข้าร่วม</p>
+                        </div>
+                    </div>
+                    <div class="divide-y divide-slate-200">
+                        <template x-if="myRegisteredEvents.length === 0">
+                            <div class="p-12 text-center text-slate-400">
+                                <i class="fa-solid fa-ticket-simple text-4xl mb-3"></i>
+                                <p class="text-base font-medium">คุณยังไม่ได้ลงทะเบียนเข้าร่วมกิจกรรมใดๆ</p>
+                                <button @click="studentTab = 'explore'" class="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all">ไปค้นหากิจกรรมกันเลย</button>
+                            </div>
+                        </template>
+                        <template x-for="item in myRegisteredEvents" :key="item.eventId">
+                            <div class="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-slate-50/50 transition-all">
+                                <div class="space-y-1">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-0.5 rounded-full" x-text="item.event.category"></span>
+                                        <span :class="item.checkedIn ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'" class="text-xs font-medium px-2.5 py-0.5 rounded-full" x-text="item.checkedIn ? 'เช็คชื่อแล้ว (เข้าร่วมสำเร็จ)' : 'ยังไม่เช็คชื่อหน้างาน'"></span>
+                                    </div>
+                                    <h4 class="text-base font-bold text-slate-900" x-text="item.event.title"></h4>
+                                    <p class="text-xs text-slate-500"><i class="fa-regular fa-calendar mr-1"></i> <span x-text="item.event.date"></span> | <i class="fa-solid fa-location-dot mx-1"></i> <span x-text="item.event.location"></span></p>
+                                </div>
+                                <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                                    <button @click="openTicketModal(item.event)" class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl text-sm font-semibold transition-all flex items-center space-x-2">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                        <span>เปิด QR Code</span>
+                                    </button>
+                                    <button @click="cancelRegistration(item.eventId)" class="px-3 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-sm transition-all" title="ยกเลิกการลงทะเบียน">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ADMIN VIEW ================= -->
+        <div x-show="role === 'admin'" x-cloak class="space-y-6">
+            <!-- Admin Header Banner -->
+            <div class="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="bg-indigo-500/30 text-indigo-300 text-xs font-medium px-3 py-1 rounded-full uppercase tracking-wider">แผงควบคุมผู้ดูแลระบบ (Admin Dashboard)</span>
+                    <h2 class="text-2xl sm:text-3xl font-bold mt-2">จัดการกิจกรรม ตรวจเช็คชื่อ และออกรายงาน</h2>
+                    <p class="text-slate-300 text-sm mt-1">บริหารจัดการชมรมและกิจกรรมทั้งหมดในมหาวิทยาลัยอย่างมีประสิทธิภาพ</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button @click="openEventModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg transition-all flex items-center space-x-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>สร้างกิจกรรมใหม่</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Overview Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500">กิจกรรมทั้งหมด</div>
+                        <div class="text-xl font-bold text-slate-900" x-text="events.length"></div>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500">ลงทะเบียนทั้งหมด</div>
+                        <div class="text-xl font-bold text-slate-900" x-text="totalRegistrationsCount"></div>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-qrcode"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500">เช็คชื่อเข้าร่วมแล้ว</div>
+                        <div class="text-xl font-bold text-slate-900" x-text="totalCheckedInCount"></div>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-ranking-star"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500">ชมรมที่ active สูงสุด</div>
+                        <div class="text-sm font-bold text-slate-900 truncate max-w-[140px]" x-text="topClubName"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Navigation Tabs -->
+            <div class="flex border-b border-slate-200 space-x-8">
+                <button @click="adminTab = 'events'" :class="adminTab === 'events' ? 'border-indigo-600 text-indigo-600 font-semibold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="pb-3 border-b-2 text-sm sm:text-base transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>จัดการกิจกรรม</span>
+                </button>
+                <button @click="adminTab = 'scanner'" :class="adminTab === 'scanner' ? 'border-indigo-600 text-indigo-600 font-semibold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="pb-3 border-b-2 text-sm sm:text-base transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-qrcode"></i>
+                    <span>จำลองระบบสแกนเช็คชื่อ</span>
+                </button>
+                <button @click="adminTab = 'reports'" :class="adminTab === 'reports' ? 'border-indigo-600 text-indigo-600 font-semibold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="pb-3 border-b-2 text-sm sm:text-base transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>รายงานสรุปสถิติ</span>
+                </button>
+            </div>
+
+            <!-- ADMIN TAB 1: Manage Events -->
+            <div x-show="adminTab === 'events'" class="space-y-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-slate-900">รายการกิจกรรมทั้งหมดในระบบ</h3>
+                        <div class="w-72">
+                            <input type="text" x-model="adminSearchQuery" placeholder="ค้นหากิจกรรม..." class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                                    <th class="p-4 font-semibold">ชื่อกิจกรรม / ชมรม</th>
+                                    <th class="p-4 font-semibold">หมวดหมู่</th>
+                                    <th class="p-4 font-semibold">วันที่ / สถานที่</th>
+                                    <th class="p-4 font-semibold">ผู้ลงทะเบียน</th>
+                                    <th class="p-4 font-semibold">สถานะ</th>
+                                    <th class="p-4 font-semibold text-right">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 text-sm">
+                                <template x-for="event in filteredAdminEvents" :key="event.id">
+                                    <tr class="hover:bg-slate-50/50 transition-all">
+                                        <td class="p-4">
+                                            <div class="font-bold text-slate-900" x-text="event.title"></div>
+                                            <div class="text-xs text-slate-500" x-text="event.club"></div>
+                                        </td>
+                                        <td class="p-4">
+                                            <span class="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full font-medium" x-text="event.category"></span>
+                                        </td>
+                                        <td class="p-4">
+                                            <div class="text-slate-800" x-text="event.date"></div>
+                                            <div class="text-xs text-slate-500 truncate max-w-[200px]" x-text="event.location"></div>
+                                        </td>
+                                        <td class="p-4 font-medium">
+                                            <span x-text="event.registeredCount"></span> / <span x-text="event.maxCapacity"></span> คน
+                                        </td>
+                                        <td class="p-4">
+                                            <span :class="{
+                                                'bg-emerald-100 text-emerald-800': event.status === 'เปิดรับสมัคร',
+                                                'bg-amber-100 text-amber-800': event.status === 'เต็มแล้ว',
+                                                'bg-slate-100 text-slate-700': event.status === 'สิ้นสุดแล้ว'
+                                            }" class="px-2.5 py-1 rounded-full text-xs font-semibold" x-text="event.status"></span>
+                                        </td>
+                                        <td class="p-4 text-right space-x-2">
+                                            <button @click="editEvent(event)" class="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all" title="แก้ไข">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                            <button @click="deleteEvent(event.id)" class="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl transition-all" title="ลบกิจกรรม">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN TAB 2: QR Scanner Simulator -->
+            <div x-show="adminTab === 'scanner'" class="space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Scanner simulator controls -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 lg:col-span-1">
+                        <h3 class="text-lg font-bold text-slate-900">จำลองการสแกนเช็คชื่อ</h3>
+                        <p class="text-xs text-slate-500">เลือกกิจกรรมที่ต้องการตรวจเช็คชื่อนักศึกษาหน้างาน หรือจำลองการสแกนรหัส QR Code</p>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">เลือกกิจกรรมสำหรับเช็คชื่อ</label>
+                            <select x-model="selectedScannerEventId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">-- เลือกกิจกรรม --</option>
+                                <template x-for="ev in events" :key="ev.id">
+                                    <option :value="ev.id" x-text="ev.title"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-200">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">จำลองสแกน QR Code (รหัสนักศึกษา)</label>
+                            <div class="flex space-x-2">
+                                <input type="text" x-model="scanInputId" placeholder="เช่น STD-660142" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <button @click="simulateScan(scanInputId)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shrink-0">
+                                    <i class="fa-solid fa-qrcode mr-1"></i> สแกน
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-indigo-50 p-4 rounded-xl text-xs text-indigo-800 space-y-1">
+                            <p class="font-bold"><i class="fa-solid fa-lightbulb mr-1"></i> คำแนะนำ:</p>
+                            <p>คุณสามารถกดปุ่ม "เช็คชื่อ" ด่วนจากตารางรายชื่อด้านขวาได้ทันทีเพื่อความสะดวกรวดเร็ว</p>
+                        </div>
+                    </div>
+
+                    <!-- Registered participants list for selected event -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:col-span-2 flex flex-col">
+                        <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">รายชื่อผู้ลงทะเบียนเข้าร่วม</h3>
+                                <p class="text-xs text-slate-500" x-text="selectedScannerEventId ? 'กิจกรรม: ' + getEventTitle(selectedScannerEventId) : 'กรุณาเลือกกิจกรรมทางด้านซ้าย'"></p>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto flex-grow">
+                            <template x-if="!selectedScannerEventId">
+                                <div class="p-12 text-center text-slate-400">
+                                    <i class="fa-solid fa-hand-pointer text-3xl mb-2"></i>
+                                    <p class="text-sm">โปรดเลือกกิจกรรมทางซ้ายเพื่อดูรายชื่อนักศึกษาและเช็คชื่อ</p>
+                                </div>
+                            </template>
+                            <template x-if="selectedScannerEventId">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                                            <th class="p-4 font-semibold">รหัสนักศึกษา</th>
+                                            <th class="p-4 font-semibold">ชื่อ - นามสกุล</th>
+                                            <th class="p-4 font-semibold">สถานะเช็คชื่อ</th>
+                                            <th class="p-4 font-semibold text-right">ดำเนินการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-200 text-sm">
+                                        <template x-for="reg in getRegistrationsForEvent(selectedScannerEventId)" :key="reg.studentId">
+                                            <tr class="hover:bg-slate-50/50">
+                                                <td class="p-4 font-mono font-medium text-slate-700" x-text="reg.studentId"></td>
+                                                <td class="p-4 font-bold text-slate-900" x-text="reg.studentName"></td>
+                                                <td class="p-4">
+                                                    <span :class="reg.checkedIn ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'" class="px-2.5 py-1 rounded-full text-xs font-semibold" x-text="reg.checkedIn ? 'เช็คชื่อแล้ว' : 'ยังไม่เช็คชื่อ'"></span>
+                                                </td>
+                                                <td class="p-4 text-right">
+                                                    <button @click="toggleCheckIn(selectedScannerEventId, reg.studentId)" :class="reg.checkedIn ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : 'bg-emerald-600 text-white hover:bg-emerald-700'" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all">
+                                                        <span x-text="reg.checkedIn ? 'ยกเลิกเช็คชื่อ' : 'เช็คชื่อสำเร็จ'"></span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN TAB 3: Reports & Statistics -->
+            <div x-show="adminTab === 'reports'" class="space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900">รายงานสรุปผลการจัดกิจกรรมและสถิติ</h3>
+                            <p class="text-xs text-slate-500">ส่งออกข้อมูลรายงานสรุปผลกิจกรรมเพื่อนำเสนอคณะและมหาวิทยาลัย</p>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button @click="exportCSV()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-file-excel"></i>
+                                <span>ส่งออกข้อมูล CSV</span>
+                            </button>
+                            <button @click="triggerPrintReport()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-print"></i>
+                                <span>พิมพ์รายงาน</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Statistics Summary Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                                    <th class="p-4 font-semibold">ชื่อกิจกรรม</th>
+                                    <th class="p-4 font-semibold">ชมรมผู้จัด</th>
+                                    <th class="p-4 font-semibold">จำนวนรับสูงสุด</th>
+                                    <th class="p-4 font-semibold">ลงทะเบียนจริง</th>
+                                    <th class="p-4 font-semibold">มาเช็คชื่อจริง</th>
+                                    <th class="p-4 font-semibold">อัตราการเข้าร่วม (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 text-sm">
+                                <template x-for="event in events" :key="event.id">
+                                    <tr class="hover:bg-slate-50/50">
+                                        <td class="p-4 font-bold text-slate-900" x-text="event.title"></td>
+                                        <td class="p-4 text-slate-600" x-text="event.club"></td>
+                                        <td class="p-4" x-text="event.maxCapacity"></td>
+                                        <td class="p-4 font-semibold text-indigo-600" x-text="event.registeredCount"></td>
+                                        <td class="p-4 font-semibold text-emerald-600" x-text="getCheckedInCountForEvent(event.id)"></td>
+                                        <td class="p-4">
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
+                                                    <div class="bg-indigo-600 h-full rounded-full" :style="'width: ' + (event.maxCapacity > 0 ? (getCheckedInCountForEvent(event.id) / event.maxCapacity) * 100 : 0) + '%'"></div>
+                                                </div>
+                                                <span class="text-xs font-medium text-slate-600" x-text="event.maxCapacity > 0 ? Math.round((getCheckedInCountForEvent(event.id) / event.maxCapacity) * 100) + '%' : '0%'"></span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL 1: QR Code Ticket Modal for Students -->
+    <div x-show="showTicketModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div @click.away="showTicketModal = false" class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-100 transform transition-all">
+            <div class="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white relative">
+                <button @click="showTicketModal = false" class="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <span class="bg-white/20 text-indigo-100 text-xs px-3 py-1 rounded-full uppercase tracking-wider">ตั๋วอิเล็กทรอนิกส์ (E-Ticket)</span>
+                <h3 class="text-xl font-bold mt-2" x-text="currentTicketEvent ? currentTicketEvent.title : ''"></h3>
+                <p class="text-xs text-indigo-100 mt-1" x-text="currentTicketEvent ? currentTicketEvent.club : ''"></p>
+            </div>
+            <div class="p-6 space-y-6 text-center">
+                <div class="bg-slate-50 border border-slate-200 p-6 rounded-2xl flex flex-col items-center justify-center space-y-3">
+                    <div id="qrcode-container" class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 inline-block"></div>
+                    <div class="text-xs font-mono text-slate-500">ID: STD-660142-<span x-text="currentTicketEvent ? currentTicketEvent.id : ''"></span></div>
+                    <p class="text-xs text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> ลงทะเบียนสำเร็จแล้ว แสดง QR Code นี้ต่อเจ้าหน้าที่หน้างาน</p>
+                </div>
+                <div class="text-left space-y-2 text-xs text-slate-600 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                    <p><i class="fa-regular fa-calendar mr-2 text-indigo-600"></i> <strong class="text-slate-700">วันที่:</strong> <span x-text="currentTicketEvent ? currentTicketEvent.date : ''"></span></p>
+                    <p><i class="fa-solid fa-location-dot mr-2 text-indigo-600"></i> <strong class="text-slate-700">สถานที่:</strong> <span x-text="currentTicketEvent ? currentTicketEvent.location : ''"></span></p>
+                </div>
+                <button @click="showTicketModal = false" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold transition-all shadow-lg">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Create / Edit Event Modal for Admin -->
+    <div x-show="showEventModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div @click.away="showEventModal = false" class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] flex flex-col">
+            <div class="bg-slate-900 text-white p-6 flex justify-between items-center">
+                <h3 class="text-lg font-bold" x-text="isEditing ? 'แก้ไขข้อมูลกิจกรรม' : 'สร้างกิจกรรมใหม่'"></h3>
+                <button @click="showEventModal = false" class="text-slate-400 hover:text-white p-2 rounded-full transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form @submit.prevent="saveEvent()" class="p-6 space-y-4 overflow-y-auto flex-grow">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อกิจกรรม</label>
+                    <input type="text" x-model="eventForm.title" required placeholder="เช่น อบรม AI พื้นฐานสำหรับนักศึกษา" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">ชมรมผู้จัด</label>
+                        <input type="text" x-model="eventForm.club" required placeholder="เช่น ชมรมคอมพิวเตอร์" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">หมวดหมู่</label>
+                        <select x-model="eventForm.category" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="วิชาการ">วิชาการ / นวัตกรรม</option>
+                            <option value="กีฬา">กีฬา / สันทนาการ</option>
+                            <option value="บำเพ็ญประโยชน์">บำเพ็ญประโยชน์</option>
+                            <option value="ศิลปวัฒนธรรม">ศิลปวัฒนธรรม</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">วันและเวลา</label>
+                        <input type="text" x-model="eventForm.date" required placeholder="เช่น 25 ต.ค. 2569 (13:00 - 16:00)" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">จำนวนที่รับจำกัด (คน)</label>
+                        <input type="number" x-model.number="eventForm.maxCapacity" required min="1" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">สถานที่จัดกิจกรรม</label>
+                    <input type="text" x-model="eventForm.location" required placeholder="เช่น หอประชุมใหญ่ อาคาร 5" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">สถานะกิจกรรม</label>
+                    <select x-model="eventForm.status" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="เปิดรับสมัคร">เปิดรับสมัคร</option>
+                        <option value="เต็มแล้ว">เต็มแล้ว</option>
+                        <option value="สิ้นสุดแล้ว">สิ้นสุดแล้ว</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">รายละเอียดเพิ่มเติม</label>
+                    <textarea x-model="eventForm.description" rows="3" placeholder="รายละเอียด กติกา หรือเงื่อนไขกิจกรรม..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                <div class="pt-4 flex justify-end space-x-3">
+                    <button type="button" @click="showEventModal = false" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-all">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
+            <p>© 2026 CampusEvent Hub - ระบบบริหารจัดการกิจกรรมและชมรมนักศึกษา มหาวิทยาลัยต้นแบบ</p>
+        </div>
+    </footer>
+
+    <!-- เรียกใช้ไฟล์ JavaScript ที่แยกไว้ -->
+    <script src="assets/js/data.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
